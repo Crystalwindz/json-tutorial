@@ -91,8 +91,9 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
     const char* p;
     EXPECT(c, '\"');
     p = c->json;
+	char ch;
     for (;;) {
-        char ch = *p++;
+        ch = *p++;
         switch (ch) {
 			case '\\':
 				ch = *p++;
