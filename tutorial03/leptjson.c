@@ -1,3 +1,8 @@
+/*#ifdef _WINDOWS
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+#endif*/
+
 #include "leptjson.h"
 #include <assert.h>  /* assert() */
 #include <errno.h>   /* errno, ERANGE */
@@ -96,9 +101,8 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
         ch = *p++;
         switch (ch) {
 			case '\\':
-				ch = *p++;
-				switch (ch) {
-				case '"':PUTC(c, '\"'); break;
+				switch (*p++) {
+				case '\"':PUTC(c, '\"'); break;
 				case'\\':PUTC(c, '\\'); break;
 				case'/':PUTC(c, '/'); break;
 				case'b':PUTC(c, '\b'); break;
@@ -107,6 +111,7 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
 				case'r':PUTC(c, '\r'); break;
 				case't':PUTC(c, '\t'); break;
 				default:
+					c->top = head;
 					return LEPT_PARSE_INVALID_STRING_ESCAPE;
 				}
 				break;
@@ -119,7 +124,8 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
                 c->top = head;
                 return LEPT_PARSE_MISS_QUOTATION_MARK;
             default:
-				if (ch>=0 &&ch <=31)
+				if (ch >= 0 && ch <= 31)
+					c->top = head;
 					return LEPT_PARSE_INVALID_STRING_CHAR;
                 PUTC(c, ch);
         }
@@ -177,7 +183,7 @@ int lept_get_boolean(const lept_value* v) {
 }
 
 void lept_set_boolean(lept_value* v, int b) {
-	assert(v != NULL);
+	lept_free(v);
 	v->type = (b ? LEPT_TRUE : LEPT_FALSE);
 }
 
@@ -187,7 +193,7 @@ double lept_get_number(const lept_value* v) {
 }
 
 void lept_set_number(lept_value* v, double n) {
-	assert(v != NULL);
+	lept_free(v);
 	v->u.n = n;
 	v->type = LEPT_NUMBER;
 }
