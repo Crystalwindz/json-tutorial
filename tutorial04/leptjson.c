@@ -91,12 +91,53 @@ static int lept_parse_number(lept_context* c, lept_value* v) {
 }
 
 static const char* lept_parse_hex4(const char* p, unsigned* u) {
-    /* \TODO */
+	unsigned hm = 0, i;
+	char ch;
+	for (i = 16 * 16 * 16; i != 0; i /= 16) {
+		ch = *p++;
+		switch (ch) {
+		case'a':case'b':case'c':
+		case'd':case'e':case'f':
+			hm += (ch - 87)*i;
+			break;
+		case'A':case'B':case'C':
+		case'D':case'E':case'F':
+			hm += (ch - 55)*i;
+			break;
+		case'0':case'1':case'2':case'3':case'4':
+		case'5':case'6':case'7':case'8':case'9':
+			hm += (ch - 48)*i;
+			break;
+		default:
+			return NULL;
+		}
+	}
+	*u = hm;
     return p;
 }
 
+#define OutputByte(ch) PUTC(c,ch)
+
 static void lept_encode_utf8(lept_context* c, unsigned u) {
-    /* \TODO */
+	assert(u >= 0x0000 && u <= 0x10FFFF);
+	if (u >= 0x0000 && u <= 0x007F) {
+		OutputByte(u);
+	}
+	if (u >= 0x0080 && u <= 0x07FF) {
+		OutputByte(0xC0 | ((u >> 6) & 0xFF));
+		OutputByte(0x80 | (	u		& 0x3F));
+	}
+	if (u >= 0x0800 && u <= 0xFFFF) {
+		OutputByte(0xE0 | ((u >> 12) & 0xFF));
+		OutputByte(0x80 | ((u >> 6)  & 0x3F));
+		OutputByte(0x80 | (	u		 & 0x3F));
+	}
+	if (u >= 0x10000 && u <= 0x10FFFF) {
+		OutputByte(0xF0 | ((u >> 18) & 0xFF));
+		OutputByte(0x80 | ((u >> 12) & 0x3F));
+		OutputByte(0x80 | ((u >> 6)	 & 0x3F));
+		OutputByte(0x80 | (	u		 & 0x3F));
+	}
 }
 
 #define STRING_ERROR(ret) do { c->top = head; return ret; } while(0)
@@ -128,7 +169,16 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
                     case 'u':
                         if (!(p = lept_parse_hex4(p, &u)))
                             STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX);
-                        /* \TODO surrogate handling */
+
+						if (u >= 0xD800 && u <= 0xDBFF) {
+							unsigned l;
+							if (   !(*p++ == '\\')
+								|| !(*p++ == 'u')
+								|| !(p = lept_parse_hex4(p, &l))
+								|| !(l >= 0xDC00 && l <= 0xDFFF))
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE);
+							u = 0x10000 + (u - 0xD800) * 0x400 + (l - 0xDC00);
+						}
                         lept_encode_utf8(c, u);
                         break;
                     default:
