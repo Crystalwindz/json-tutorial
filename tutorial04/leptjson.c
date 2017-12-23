@@ -116,27 +116,25 @@ static const char* lept_parse_hex4(const char* p, unsigned* u) {
     return p;
 }
 
-#define OutputByte(ch) PUTC(c,ch)
-
 static void lept_encode_utf8(lept_context* c, unsigned u) {
 	assert(u >= 0x0000 && u <= 0x10FFFF);
 	if (u >= 0x0000 && u <= 0x007F) {
-		OutputByte(u);
+		PUTC(c,u & 0xFF);
 	}
 	if (u >= 0x0080 && u <= 0x07FF) {
-		OutputByte(0xC0 | ((u >> 6) & 0xFF));
-		OutputByte(0x80 | (	u		& 0x3F));
+		PUTC(c,0xC0 | ((u >> 6) & 0xFF));
+		PUTC(c,0x80 | (	u		& 0x3F));
 	}
 	if (u >= 0x0800 && u <= 0xFFFF) {
-		OutputByte(0xE0 | ((u >> 12) & 0xFF));
-		OutputByte(0x80 | ((u >> 6)  & 0x3F));
-		OutputByte(0x80 | (	u		 & 0x3F));
+		PUTC(c,0xE0 | ((u >> 12) & 0xFF));
+		PUTC(c,0x80 | ((u >> 6)  & 0x3F));
+		PUTC(c,0x80 | (	u		 & 0x3F));
 	}
 	if (u >= 0x10000 && u <= 0x10FFFF) {
-		OutputByte(0xF0 | ((u >> 18) & 0xFF));
-		OutputByte(0x80 | ((u >> 12) & 0x3F));
-		OutputByte(0x80 | ((u >> 6)	 & 0x3F));
-		OutputByte(0x80 | (	u		 & 0x3F));
+		PUTC(c,0xF0 | ((u >> 18) & 0xFF));
+		PUTC(c,0x80 | ((u >> 12) & 0x3F));
+		PUTC(c,0x80 | ((u >> 6)	 & 0x3F));
+		PUTC(c,0x80 | (	u		 & 0x3F));
 	}
 }
 
